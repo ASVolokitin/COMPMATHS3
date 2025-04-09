@@ -1,8 +1,10 @@
-import argparse
+# добавить обработку запятых
 
-from argument_parser import ArgumentParser
+from entities.ArgumentParser import ArgumentParser
+from entities.Solver import Solver
 
 if __name__ == '__main__':
     parser = ArgumentParser()
     args = parser.get_arguments()
-    print(args.solving_method)
+    solver = Solver(args)
+    print(solver.solve())
