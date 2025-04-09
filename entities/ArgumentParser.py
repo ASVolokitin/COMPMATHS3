@@ -1,5 +1,10 @@
 import argparse
 
+from entities.ArgSet import ArgSet
+from entities.SolvingMethod import SolvingMethod
+from utils import uni_float, MAX_NUMBER_OF_PARTITIONS, MAX_PRECISION, parse_func
+
+
 class ArgumentParser:
     def __init__(self):
         self.parser = argparse.ArgumentParser(prog="cm3", description="And here's the third one")
@@ -11,66 +16,101 @@ class ArgumentParser:
 
     def setup_subparsers(self):
         self.setup_rect_arguments()
-        self.setup_basic_subparser(self.trap_parser)
-        self.setup_basic_subparser(self.simp_parser)
+        self.setup_trap_arguments()
+        self.setup_simp_arguments()
+        # self.setup_basic_subparser(self.rect_parser)
+        # self.setup_basic_subparser(self.trap_parser)
+        # self.setup_basic_subparser(self.simp_parser)
 
     def setup_basic_subparser(self, subparser):
-        subparser.add_argument("func",
+        subparser.add_argument("--func",
+                               required=True,
                                metavar="FUNC",
-                               choices=["1", "2", "3", "4", "5"],
                                help="Specify the integrand function")
-        subparser.add_argument("lower_limit",
-                               type=self.uni_float,
+        subparser.add_argument("--ll",
+                               required=True,
+                               type=uni_float,
                                metavar="LOWER-LIMIT",
                                help="Specify the lower limit of integration")
-        subparser.add_argument("upper_limit",
+        subparser.add_argument("--ul",
+                               required=True,
                                metavar="UPPER-LIMIT",
-                               type=self.uni_float,
+                               type=uni_float,
                                help="Specify the upper limit of integration")
-        subparser.add_argument("precision",
-                               metavar="PRECISION",
-                               type=self.uni_float,
-                               help="Specify the accuracy of the integral calculation")
-        subparser.add_argument("number_of_partitions",
+        subparser.add_argument("--npart",
+                               required=True,
                                metavar="NUMBER-OF-PARTITIONS",
                                type=int,
                                help="Specify the initial number of partition segments to calculate the integral")
+        subparser.add_argument("--pr",
+                               required=True,
+                               metavar="PRECISION",
+                               type=int,
+                               help="Specify the accuracy of the integral calculation (number of decimal places)")
+
 
     def setup_rect_arguments(self):
-        self.rect_parser.add_argument("method",
-                                      metavar="METHOD",
-                                      choices=["1", "2", "3"],
-                                      help="""Specify the method for calculating the integral:
-                                         1 - left,
-                                         2 - right,
-                                         3 - middle""")
+        self.rect_parser.add_argument("--recmet",
+                                      required=True,
+                                      metavar="RECT-METHOD",
+                                      choices=["left", "right", "middle"],
+                                      help="Specify the method for calculating the integral (right, left, middle)")
         self.setup_basic_subparser(self.rect_parser)
 
-    def uni_float(self, value):
-        try:
-            return float(value.replace(',', '.'))
-        except ValueError:
-            return argparse.ArgumentTypeError(' is not a float' % value)
+    def setup_trap_arguments(self):
+        self.setup_basic_subparser(self.trap_parser)
+
+
+    def setup_simp_arguments(self):
+        self.setup_basic_subparser(self.simp_parser)
 
     def validate_arguments(self, args):
+        self.validate_function(args)
         self.validate_borders(args)
         self.validate_precision(args)
         self.validate_partitions(args)
 
+    def validate_function(self, args):
+        try:
+            args.func = parse_func(args.func)
+        except TypeError as e:
+            self.parser.error(str(e))
+
     def validate_borders(self, args):
-        if args.lower_limit >= args.upper_limit:
+        if args.ll >= args.ul:
             self.parser.error("The lower limit should be smaller than the upper one")
 
     def validate_precision(self, args):
-        if args.precision < 0 or args.precision > 1:
-            self.parser.error("Precision must be between 0 and 1")
+        if args.pr <= 0:
+            self.parser.error("Precision must be positive")
+        if args.pr > MAX_PRECISION:
+            self.parser.error(f"The selected accuracy is too high, the maximum allowed value is {MAX_PRECISION}")
 
     def validate_partitions(self, args):
-        if args.number_of_partitions < 0:
+        if args.npart <= 0:
             self.parser.error("Number of partitions must be positive")
+        if args.npart > MAX_NUMBER_OF_PARTITIONS:
+            self.parser.error("Number of partitions is too big")
+
+    def get_method(self, args):
+        method = None
+        if args.solving_method == "rect":
+            if args.recmet == "left":
+                method = SolvingMethod.RECT_LEFT
+            elif args.recmet == "right":
+                method = SolvingMethod.RECT_RIGHT
+            elif args.recmet == "middle":
+                method = SolvingMethod.RECT_MIDDLE
+        elif args.solving_method == "trap":
+            method = SolvingMethod.TRAP
+        elif args.solving_method == "simp":
+            method = SolvingMethod.SIMP
+
+        return method
 
     def get_arguments(self):
         args = self.parser.parse_args()
         self.validate_arguments(args)
-        return args
-
+        method = self.get_method(args)
+        if method is not None: return ArgSet(method, args)
+        else: self.parser.error("Solving method is not set properly")
