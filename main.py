@@ -1,4 +1,3 @@
-# добавить обработку запятых (почему после запятой значащие нули пропадают?)
 # добавить в print result описание функции
 
 from entities.ArgumentParser import ArgumentParser
@@ -10,3 +9,4 @@ if __name__ == '__main__':
     args = parser.get_arguments()
     solver = Solver(args)
     print_result(solver.solve())
+

@@ -8,12 +8,6 @@ from solvers.trapezoid_method import solve_trapezoid
 class Solver:
     def __init__(self, argset : ArgSet):
         self.argset = argset
-        # self.method = argset.method
-        # self.func = argset.func
-        # self.lower_limit = argset.lower_limit
-        # self.upper_limit = argset.upper_limit
-        # self.precision = argset.precision
-        # self.number_of_partitions = argset.number_of_partitions
 
     def solve(self):
         try:
@@ -26,3 +20,6 @@ class Solver:
         except ValueError as e:
                 print(e)
                 exit(1)
+        except TypeError as e:
+            print("The integral function is not defined over the entire interval")
+            exit(1)

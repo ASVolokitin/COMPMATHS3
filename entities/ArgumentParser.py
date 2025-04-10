@@ -2,7 +2,7 @@ import argparse
 
 from entities.ArgSet import ArgSet
 from entities.SolvingMethod import SolvingMethod
-from utils import uni_float, MAX_NUMBER_OF_PARTITIONS, MAX_PRECISION, parse_func
+from utils import uni_float, MAX_NUMBER_OF_PARTITIONS, MAX_PRECISION, parse_func, check_singularities, lambdify_func
 
 
 class ArgumentParser:
@@ -72,7 +72,15 @@ class ArgumentParser:
 
     def validate_function(self, args):
         try:
+            args.func_text = args.func.replace("**", "^")
             args.func = parse_func(args.func)
+            if str(args.func) == "zoo":
+                self.parser.error("The integral function is not defined over the entire interval")
+            singularities = check_singularities(args.func)
+            for singularity in singularities:
+                if args.ll <= singularity <= args.ul:
+                    self.parser.error(f"The integral function has a singularity on the integration segment (x = {singularity}). Integral does not exist")
+            args.func = lambdify_func(args.func)
         except TypeError as e:
             self.parser.error(str(e))
 
