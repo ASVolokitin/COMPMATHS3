@@ -9,7 +9,7 @@ def simpson_iteration(argset : ArgSet):
     res = 0
     res += (argset.get_fx(argset.lower_limit) + argset.get_fx(argset.upper_limit))
     x = argset.lower_limit
-    for i in range(argset.number_of_partitions - 1):
+    for i in range(1, argset.number_of_partitions):
         if i % 2 == 0:
             res += 2 * argset.get_fx(x)
         else:

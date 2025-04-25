@@ -26,7 +26,7 @@ def rectangle_iteration(argset : ArgSet):
         return sp.Float(res)
     except TypeError:
         print("Error occured while calculating function value")
-
+        raise TypeError
 
 def solve_rectangle(argset : ArgSet):
     return runge_iterator(argset, rectangle_iteration, RECT_K)

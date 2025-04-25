@@ -1,4 +1,5 @@
 import argparse
+import json
 
 import sympy as sp
 
@@ -50,6 +51,9 @@ def round_result(result, precision):
     return round(result, precision)
 
 def print_result(result_tuple):
+    if result_tuple is None:
+        print("Program finished with no result")
+        return
     if is_complex(result_tuple[0]):
         print("During the decision, a transition was made to the complex plane, the result cannot be interpreted meaningfully.")
         return
@@ -63,8 +67,39 @@ def print_result(result_tuple):
     number of partitions: {result_tuple[1].number_of_partitions}
     """)
 
+def save_result(outut_filename, solution):
+    if outut_filename is not None and outut_filename != "":
+        try:
+            if not isinstance(outut_filename, str):
+                raise TypeError("The file name must be a string")
+
+            try:
+                to_json_data = solution[1].to_json()
+                to_json_data['result'] = float(solution[0])
+                json_data = json.dumps(to_json_data, indent=4)
+            except TypeError as e:
+                print(f"The object is not serializable in JSON: {e}")
+                return
+
+            try:
+                with open(outut_filename, "w", encoding="utf-8") as f:
+                    f.write(json_data)
+            except PermissionError as e:
+                print(f"Permission denied: {e}")
+                return
+            except IOError as e:
+                print(f"Error writing to a file {outut_filename}: {e}")
+                return
+
+        except Exception as e:
+            print(f"Couldn't save the object to {outut_filename}: {e}")
+            return
+
+
 def runge_iterator(argset : ArgSet, calculate_iteration, k):
     prev = calculate_iteration(argset)
+    if prev is None:
+        raise ValueError
     argset.number_of_partitions *= 2
     cur = calculate_iteration(argset)
     while abs(cur - prev) / (2**k - 1) >= 0.1 ** argset.precision:
@@ -75,9 +110,8 @@ def runge_iterator(argset : ArgSet, calculate_iteration, k):
                 "The specified accuracy will take too long to calculate, reduce it or the length of the interval")
         prev = cur
         if is_complex(cur):
-            raise ValueError("During the decision, a transition was made to the complex plane, the result cannot be interpreted meaningfully.")
+            raise ValueError("During the devision, a transition was made to the complex plane, the result cannot be interpreted meaningfully.")
         cur = calculate_iteration(argset)
-        print(prev, cur)
 
     return round_result(cur, argset.precision), argset
 

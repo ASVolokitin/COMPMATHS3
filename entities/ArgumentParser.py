@@ -47,6 +47,10 @@ class ArgumentParser:
                                metavar="PRECISION",
                                type=int,
                                help="Specify the accuracy of the integral calculation (number of decimal places)")
+        subparser.add_argument("--of",
+                               required=False,
+                               metavar="OUTPUT-FILE",
+                               help="(optional) Specify the name of the output file if needed")
 
 
     def setup_rect_arguments(self):
@@ -79,7 +83,7 @@ class ArgumentParser:
             singularities = check_singularities(args.func)
             for singularity in singularities:
                 if args.ll <= singularity <= args.ul:
-                    self.parser.error(f"The integral function has a singularity on the integration segment (x = {singularity}). Integral does not exist")
+                    self.parser.error(f"The integral function has a singularity on the integration segment (x = {singularity}). Integral diverges")
             args.func = lambdify_func(args.func)
         except TypeError as e:
             self.parser.error(str(e))
