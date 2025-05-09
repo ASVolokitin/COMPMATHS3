@@ -1,8 +1,9 @@
 import argparse
+import sympy as sp
 
 from entities.ArgSet import ArgSet
 from entities.SolvingMethod import SolvingMethod
-from utils import uni_float, MAX_NUMBER_OF_PARTITIONS, MAX_PRECISION, parse_func, check_singularities, lambdify_func
+from utils import sympify_func, uni_float, MAX_NUMBER_OF_PARTITIONS, MAX_PRECISION, parse_func, check_singularities, lambdify_func
 
 
 class ArgumentParser:
@@ -69,21 +70,26 @@ class ArgumentParser:
         self.setup_basic_subparser(self.simp_parser)
 
     def validate_arguments(self, args):
-        self.validate_function(args)
-        self.validate_borders(args)
-        self.validate_precision(args)
-        self.validate_partitions(args)
+        res = self.validate_function(args)
+        res = self.validate_borders(args) and res
+        res = self.validate_precision(args) and res
+        res = self.validate_partitions(args) and res
+
+        return res
 
     def validate_function(self, args):
         try:
-            args.func_text = args.func.replace("**", "^")
-            args.func = parse_func(args.func)
-            if str(args.func) == "zoo":
-                self.parser.error("The integral function is not defined over the entire interval")
-            singularities = check_singularities(args.func)
+            args.func_text = args.func.replace("^", "**")
+            singularities = check_singularities(sympify_func(args.func))
             for singularity in singularities:
                 if args.ll <= singularity <= args.ul:
                     self.parser.error(f"The integral function has a singularity on the integration segment (x = {singularity}). Integral diverges")
+            args.func = parse_func(args.func)
+            if args.func is None:
+                print("Error occured while parsing function")
+                return False
+            if args.func.has(sp.zoo):
+                self.parser.error("The integral function is not defined over the entire interval")
             args.func = lambdify_func(args.func)
         except TypeError as e:
             self.parser.error(str(e))
@@ -122,7 +128,9 @@ class ArgumentParser:
 
     def get_arguments(self):
         args = self.parser.parse_args()
-        self.validate_arguments(args)
+        if self.validate_arguments(args) == False:
+            print("Erorr occured while validating arguments")
+            return
         method = self.get_method(args)
         if method is not None: return ArgSet(method, args)
         else: self.parser.error("Solving method is not set properly")

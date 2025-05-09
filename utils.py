@@ -1,7 +1,10 @@
 import argparse
 import json
+import re
 
 import sympy as sp
+from sympy.parsing.sympy_parser import parse_expr
+from sympy import symbols, log, lambdify
 
 from entities.ArgSet import ArgSet
 
@@ -11,28 +14,47 @@ RECT_K = 2
 TRAP_K = 2
 SIMP_K = 4
 
-def parse_func(func_str):
-    func_str = func_str.strip().replace(",", ".")
+def replace_decimal_commas(expr_str):
+    return re.sub(r'(?<=\d),(?=\d)', '.', expr_str)
+
+def sympify_func(func_str):
+    func_str = replace_decimal_commas(func_str.strip())
     try:
-        expr = sp.sympify(func_str)
+        expr = sp.sympify(func_str, rational=True)
         variables = expr.free_symbols
         if not variables.issubset({sp.Symbol('x')}):
             raise TypeError("The function should contain only the variable x.")
-        # for atom in expr.atoms():
-        #     print(atom)
-        #     if atom == sp.zoo or atom == sp.nan or atom == sp.oo:
-        #         raise ValueError("Function feels like far too weird ...")
-        # f = sp.lambdify(sp.symbols('x'), expr, 'sympy')
         return expr
-    # except (sp.SympifyError, NameError, AttributeError) as e:
-    #     print("Syntax of the function does not match the format")
-    #     exit(1)
     except KeyError as e:
         print("Function feels like far too weird ...")
         exit(1)
+    except AttributeError as e:
+        print("Function format is unacceptable")
+        return
+    except sp.SympifyError as e:
+        print(e)
+        return
+
+def parse_func(func_str):
+    func_str = replace_decimal_commas(func_str.strip())
+    try:
+        expr = parse_expr(func_str)
+        variables = expr.free_symbols
+        if not variables.issubset({sp.Symbol('x')}):
+            raise TypeError("The function should contain only the variable x.")
+        return expr
+    except KeyError as e:
+        print("Function feels like far too weird ...")
+        exit(1)
+    # except AttributeError as e:
+    #     print("Function format is unacceptable")
+    #     return
+    except sp.SympifyError as e:
+        print(e)
+        return
 
 def lambdify_func(expr):
-    return sp.lambdify(sp.symbols('x'), expr, 'sympy')
+    return sp.lambdify(sp.symbols('x'), expr, "math")
 
 def check_singularities(f):
     return sp.singularities(f, sp.symbols('x'))

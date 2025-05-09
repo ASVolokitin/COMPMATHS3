@@ -21,7 +21,7 @@ class Solver:
                 print(e)
                 exit(1)
         except TypeError as e:
-            print("The integral function is not defined over the entire interval")
+            print("The value of the integral function cannot be determined")
             exit(1)
         except NameError as e:
             print("Error occured while parsing the integral function, check that the functions used are written correctly")
